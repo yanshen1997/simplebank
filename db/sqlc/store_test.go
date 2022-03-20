@@ -74,4 +74,57 @@ func TestTransferTx(t *testing.T) {
 
 	}
 
+	updatedFromAccount, err := store.GetAccount(context.Background(), account1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedFromAccount)
+	require.Equal(t, updatedFromAccount.ID, account1.ID)
+	updatedToAccount, err := store.GetAccount(context.Background(), account2.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedToAccount)
+	require.Equal(t, updatedToAccount.ID, account2.ID)
+
+	require.Equal(t, account1.Balance-int64(n)*amount, updatedFromAccount.Balance)
+	require.Equal(t, account2.Balance+int64(n)*amount, updatedToAccount.Balance)
+
+}
+func TestDLTransferTx(t *testing.T) {
+	account1, account2 := createRandomAccount(t), createRandomAccount(t)
+	store := NewStore(testDb)
+	n := 10
+	amount := int64(10)
+
+	errs := make(chan error)
+
+	for i := 0; i < n; i++ {
+		fromAccount, toAccount := account1, account2
+		if i%2 == 0 {
+			fromAccount = account2
+			toAccount = account1
+		}
+		go func() {
+			_, err := store.TransferTx(context.Background(), TransferTxParam{
+				FromAccountID: fromAccount.ID,
+				ToAccountID:   toAccount.ID,
+				Amount:        amount,
+			})
+			errs <- err
+		}()
+	}
+
+	for i := 0; i < n; i++ {
+		err := <-errs
+		require.NoError(t, err)
+	}
+
+	updatedFromAccount, err := store.GetAccount(context.Background(), account1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedFromAccount)
+	require.Equal(t, updatedFromAccount.ID, account1.ID)
+	updatedToAccount, err := store.GetAccount(context.Background(), account2.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedToAccount)
+	require.Equal(t, updatedToAccount.ID, account2.ID)
+
+	require.Equal(t, account1.Balance, updatedFromAccount.Balance)
+	require.Equal(t, account2.Balance, updatedToAccount.Balance)
 }
