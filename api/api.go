@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,7 +29,6 @@ func (server *Server) createAccount(ctx *gin.Context) {
 	})
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
-			log.Println(pqErr.Code.Name())
 			switch pqErr.Code.Name() {
 			case "unique_violation", "foreign_key_violation":
 				ctx.JSON(http.StatusForbidden, errorResponse(err))
